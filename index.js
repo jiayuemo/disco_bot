@@ -1,5 +1,6 @@
 const discord = require('discord.js');
 const melon = require('melon-chart-api');
+const moment = require('moment');
 const bot = new discord.Client();
 const anagram = require('./anagrams/module_anagram');
 const cipher = require('./ciphers/module_cipher');
@@ -25,8 +26,29 @@ bot.on('message', function(message) {
 		// create an array list of args delinated by spaces after our prefix
 		let args = message.content.substring(PREFIX1.length).split(" ");
 		if (args[0].toLowerCase() == 'chart') {
-			// display the realtime melon chart
-			console.log(melon.realtime());
+
+			// get the date of today
+			let today = moment(new Date()).format('MM/DD/YYYY');
+
+			// utilize melon-chart-api to recieve a jspromise of rankings
+			// https://github.com/hyunchel/melon-chart-api
+			let top5 = melon(today, { cutLine: 5 }).daily();
+
+			// act on the promise
+			top5.then(function(chartData) {
+				let disp = chartData['data'];
+				// loop through the data and build embeds
+				for (i=0; i <= disp.length-1; i++) {
+					// extract information from the object to a variable
+					let kpop_embed = new discord.RichEmbed()
+						.addField('Rank', disp[i]['rank'], true)
+						.addField('Title', disp[i]['title'], true)
+						.addField('Artist', disp[i]['artist'], true);
+					// display the information
+					message.channel.send(kpop_embed);
+				}
+			});
+			// end of kpop chart disp
 		} else {
 			message.channel.send('Invalid command');
 		}
