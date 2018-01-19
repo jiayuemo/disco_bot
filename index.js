@@ -1,10 +1,11 @@
 const discord = require('discord.js');
+const melon = require('melon-chart-api');
 const bot = new discord.Client();
 const anagram = require('./anagrams/module_anagram');
 const cipher = require('./ciphers/module_cipher');
 const TOKEN = require('./config');
 
-const PREFIX1 = 'gfs/';
+const PREFIX1 = 'kpop ';
 const PREFIX2 = 'osrs ';
 const osrs = require('./osrs');
 
@@ -19,18 +20,18 @@ bot.on('ready', function() {
 bot.on('message', function(message) {
 
 	if (message.content.startsWith(PREFIX1)) {
-		// GFS code
+		// Korean music code
 
 		// create an array list of args delinated by spaces after our prefix
 		let args = message.content.substring(PREFIX1.length).split(" ");
-
-		if (args[0].toLowerCase() == 'eunbii') {
-			message.channel.send('strayya mate');
-		} else if (args[0].toLowerCase() == 'haechi') {
-			message.channel.send('shameless GFS promoter');
+		if (args[0].toLowerCase() == 'chart') {
+			// display the realtime melon chart
+			console.log(melon.realtime());
+		} else {
+			message.channel.send('Invalid command');
 		}
-
 	}
+	
 
 	if (message.content.startsWith(PREFIX2)) {
 		// osrs code
