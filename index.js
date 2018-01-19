@@ -1,6 +1,7 @@
 const discord = require('discord.js');
 const melon = require('melon-chart-api');
 const moment = require('moment');
+const ytsearch = require('youtube-search');
 const bot = new discord.Client();
 const anagram = require('./anagrams/module_anagram');
 const cipher = require('./ciphers/module_cipher');
@@ -10,7 +11,11 @@ const PREFIX1 = 'kpop ';
 const PREFIX2 = 'osrs ';
 const osrs = require('./osrs');
 
-const SECRET = TOKEN.TOKEN;
+const DISCORD_SECRET = TOKEN.TOKEN.DISCORD_TOKEN;
+const ytsearch_options = {
+	maxResults: 1,
+  	key: TOKEN.TOKEN.YOUTUBE_KEY
+};
 
 // function to run on bot startup
 bot.on('ready', function() {
@@ -36,19 +41,74 @@ bot.on('message', function(message) {
 
 			// act on the promise
 			top5.then(function(chartData) {
-				let disp = chartData['data'];
-				// loop through the data and build embeds
-				for (i=0; i <= disp.length-1; i++) {
-					// extract information from the object to a variable
+				let data = chartData['data'];
+				// loop through the data and populate these arrays
+				let display_rank = new Array();
+				let display_title = new Array();
+				let display_artist = new Array();
+				let keywords = new Array();
+				for (i=0; i <= data.length-1; i++) {
+					display_rank = display_rank.concat(data[i]['rank']);
+					display_title = display_title.concat(data[i]['title']);
+					display_artist = display_artist.concat(data[i]['artist']);
+					keywords = keywords.concat(data[i]['title']+' by '+data[i]['artist']);
+				}
+				return new Promise(function(resolve, reject){
+					// resolve the three arrays after 1 s
+					setTimeout(function() {
+						let display_data = {
+							rank: display_rank,
+							title: display_title,
+							artist: display_artist,
+							keywords: keywords
+						};
+						resolve(display_data);
+					}, 1000)
+				});
+			}).then(function (result) {
+				// continue the chain of promises
+				// loop through data and populate this array
+				let youtube_link = new Array();
+				let keywords = result['keywords'];
+				for (i=0; i<= keywords.length-1; i++) {
+					// find the youtube link based on title and artist
+					ytsearch(keywords[i], ytsearch_options, function(err, results) {
+					  // return the link for the video based on keywords and concat to array
+					  // IMPORTANT THIS RESULTS ISNT REALTED TO OUR PROMISE CHAIN
+					  console.log(results);
+					  let scrapped_link = results[0]['link'];
+					  console.log(scrapped_link);
+					  youtube_link = youtube_link.concat(scrapped_link);
+					});
+				}
+				return new Promise(function(resolve, reject) {
+					// resolve the youtube links array after 2 s
+					setTimeout(function() {
+						console.log(youtube_link);
+						console.log(keywords);
+						let display_data = {
+							rank: result['rank'],
+							title: result['title'],
+							artist: result['artist'],
+							keywords: keywords,
+							link: youtube_link
+						};
+						resolve(display_data)
+					}, 5000)
+				});
+			}).then(function (result) {
+				// last promise in the chain - finally ready to disp data
+				let rank = result['rank'];
+				for (i=0; i<= rank.length-1; i++) {
+					// extract information from the result obj and display on disco
 					let kpop_embed = new discord.RichEmbed()
-						.addField('Rank', disp[i]['rank'], true)
-						.addField('Title', disp[i]['title'], true)
-						.addField('Artist', disp[i]['artist'], true);
-					// display the information
+						.addField('Rank', result['rank'][i], true)
+						.addField('Title', result['title'][i], true)
+						.addField('Artist', result['artist'][i], true);
 					message.channel.send(kpop_embed);
+					message.channel.send(result['link'][i]);
 				}
 			});
-			// end of kpop chart disp
 		} else {
 			message.channel.send('Invalid command');
 		}
@@ -168,4 +228,4 @@ bot.on('message', function(message) {
 
 });
 
-bot.login(SECRET);
+bot.login(DISCORD_SECRET);
