@@ -38,7 +38,7 @@ bot.on('message', function(message) {
 
 			// Create functions
 			// https://stackoverflow.com/questions/41020872/javascript-promises-chain-same-promise-n-times-then-do-something-else
-			function createmsg(content) {
+/*			function createmsg(content) {
 				let query = new Promise(function(resolve,reject) {
 					let keywords = content[0]['keywords'];
 					ytsearch(keywords, ytsearch_options, function(err, search_results) {
@@ -68,14 +68,14 @@ bot.on('message', function(message) {
 				return query;
 			};
 
-			function createmultiplemsg(current_iteration,target_iteration,specific_content,all_content) {
+			function createmultiplemsg(current_iteration,target_iteration,all_content) {
 				if (current_iteration == target_iteration) {
 					return Promise.resolve(); // finally done with every iteration
 				}
 				return createmsg(specific_content).then(function() {
-					return createmultiplemsg(current_iteration+1, 5, content[current_iteration+1], content);
+					return createmultiplemsg(current_iteration+1, 5, content);
 				})
-			};
+			};*/
 
 			
 
@@ -86,47 +86,94 @@ bot.on('message', function(message) {
 				let data = chartData['data'];
 				let all_content = new Array();
 				for (i=0; i<=data.length-1; i++) {
-					let all_content[i] = {
-						rank = data[i]['rank'],
-						title = data[i]['title'],
-						artist = data[i]['artist'],
-						keywords = data[i]['title']+' by '+data[i]['artist']
-					};
+					all_content = all_content.concat({
+						rank: data[i]['rank'],
+						title: data[i]['title'],
+						artist: data[i]['artist'],
+						keywords: data[i]['title']+' by '+data[i]['artist']
+					});
+					if (i==data.length-1) {
+						return new Promise(function(resolve, reject){
+							resolve(all_content);
+						});
+					}
 				};
-				return new Promise(function(resolve, reject){
-					console.log(all_content);
-					reolve(all_content);
+			}).then(function(all_content) {
+				// iterator then, where we implement our functions
+				// createmultiplemsg is the function that manages our "loop"
+				function createmultiplemsg(current_iteration,target_iteration,all_content) {
+					if (current_iteration == target_iteration) {
+						return Promise.resolve(); // finally done with every iteration
+					}
+					// more iterations to come
+					return createmsg(all_content[current_iteration]).then(function() {
+						return createmultiplemsg(current_iteration+1, 5, all_content);
+					})
+				};
+				// createmsg is the single function that api req yt and prints msg
+				function createmsg(content) {
+					let query = new Promise(function(resolve,reject) {
+						let keywords = content['keywords'];
+						ytsearch(keywords, ytsearch_options, function(err, search_results) {
+						  	if(err) return console.log(err);
+					  		// return the link for the video based on keyword
+					  		let scrapped_link = search_results[0]['link'];
+						  	let specific_display = {
+						  		rank: content['rank'],
+								title: content['title'],
+								artist: content['artist'],
+								keywords: keywords,
+								link: scrapped_link
+						  	};
+						  	resolve(specific_display);
+						});
+					}).then(function (result) {
+						// last promise in the chain - finally ready to disp data
+						// extract information from the result obj and display on disco
+						let kpop_embed = new discord.RichEmbed()
+							.addField('Rank', result['rank'], true)
+							.addField('Title', result['title'], true)
+							.addField('Artist', result['artist'], true);
+						message.channel.send(kpop_embed);
+						message.channel.send(result['link']);
+					});
+					// END OF A SINGLE PROMISE CHAIN
+					return query;
+				};
+				// end of functions implementation
+				console.log(all_content[0]);
+				createmultiplemsg(0,5,all_content).then(function(){
+					console.log('Finally done');
 				});
-			}).then(function(result) {
-				console.log(result);
+
 			});
+
 
 			// Because we want five sets of messages displayed
 			// wrap our promise chain in a for loop which iterates 5 times
 /*			for (i=0; i <= 4; i++) {
+				console.log(i);
 				// BEGIN of promise chain
 				top5.then(function(chartData) {
 					let data = chartData['data'];
-					let display_rank = data[i]['rank'];
-					let display_title = data[i]['title'];
-					let display_artist = data[i]['artist'];
-					let keywords = display_title+' by '+display_artist;
+					let keywords = data[i]['title']+' by '+data[i]['artist'];
 					return new Promise(function(resolve, reject){
 						ytsearch(keywords, ytsearch_options, function(err, search_results) {
 					  		if(err) return console.log(err);
 					  		// return the link for the video based on keyword
 					  		let scrapped_link = search_results[0]['link'];
 						  	let specific_display = {
-						  		rank: display_rank,
-								title: display_title,
-								artist: display_artist,
+						  		rank: data[i]['rank'],
+								title: data[i]['title'],
+								artist: data[i]['artist'],
 								keyword: keywords,
 								link: scrapped_link
 						  	};
+						  	console.log(specific_display);
 						  	resolve(specific_display);
 						});
 					});
-				}).then(function (result) {
+				}.bind(this))*//*.then(function (result) {
 					// last promise in the chain - finally ready to disp data
 					// extract information from the result obj and display on disco
 					let kpop_embed = new discord.RichEmbed()
