@@ -14,6 +14,7 @@ const osrs = require('./osrs');
 const DISCORD_SECRET = TOKEN.TOKEN.DISCORD_TOKEN;
 const ytsearch_options = {
 	maxResults: 1,
+	part: 'snippet',
   	key: TOKEN.TOKEN.YOUTUBE_KEY
 };
 
@@ -35,80 +36,109 @@ bot.on('message', function(message) {
 			// get the date of today
 			let today = moment(new Date()).format('MM/DD/YYYY');
 
+			// Create functions
+			// https://stackoverflow.com/questions/41020872/javascript-promises-chain-same-promise-n-times-then-do-something-else
+			function createmsg(content) {
+				let query = new Promise(function(resolve,reject) {
+					let keywords = content[0]['keywords'];
+					ytsearch(keywords, ytsearch_options, function(err, search_results) {
+					  	if(err) return console.log(err);
+				  		// return the link for the video based on keyword
+				  		let scrapped_link = search_results[0]['link'];
+					  	let specific_display = {
+					  		rank: this.content[0]['rank']
+							title: this.content[0]['title'],
+							artist: this.content[0]['artist'],
+							keywords: keywords,
+							link: scrapped_link
+					  	};
+					  	resolve(specific_display);
+					});
+				}).then(function (result) {
+					// last promise in the chain - finally ready to disp data
+					// extract information from the result obj and display on disco
+					let kpop_embed = new discord.RichEmbed()
+						.addField('Rank', result['rank'], true)
+						.addField('Title', result['title'], true)
+						.addField('Artist', result['artist'], true);
+					message.channel.send(kpop_embed);
+					message.channel.send(result['link']);
+				});
+				// END OF PROMISE CHAIN;
+				return query;
+			};
+
+			function createmultiplemsg(current_iteration,target_iteration,specific_content,all_content) {
+				if (current_iteration == target_iteration) {
+					return Promise.resolve(); // finally done with every iteration
+				}
+				return createmsg(specific_content).then(function() {
+					return createmultiplemsg(current_iteration+1, 5, content[current_iteration+1], content);
+				})
+			};
+
+			
+
 			// utilize melon-chart-api to recieve a jspromise of rankings
 			// https://github.com/hyunchel/melon-chart-api
 			let top5 = melon(today, { cutLine: 5 }).daily();
-
-			// act on the promise
 			top5.then(function(chartData) {
 				let data = chartData['data'];
-				// loop through the data and populate these arrays
-				let display_rank = new Array();
-				let display_title = new Array();
-				let display_artist = new Array();
-				let keywords = new Array();
-				for (i=0; i <= data.length-1; i++) {
-					display_rank = display_rank.concat(data[i]['rank']);
-					display_title = display_title.concat(data[i]['title']);
-					display_artist = display_artist.concat(data[i]['artist']);
-					keywords = keywords.concat(data[i]['title']+' by '+data[i]['artist']);
-				}
+				let all_content = new Array();
+				for (i=0; i<=data.length-1; i++) {
+					let all_content[i] = {
+						rank = data[i]['rank'],
+						title = data[i]['title'],
+						artist = data[i]['artist'],
+						keywords = data[i]['title']+' by '+data[i]['artist']
+					};
+				};
 				return new Promise(function(resolve, reject){
-					// resolve the three arrays after 1 s
-					setTimeout(function() {
-						let display_data = {
-							rank: display_rank,
-							title: display_title,
-							artist: display_artist,
-							keywords: keywords
-						};
-						resolve(display_data);
-					}, 1000)
+					console.log(all_content);
+					reolve(all_content);
 				});
-			}).then(function (result) {
-				// continue the chain of promises
-				// loop through data and populate this array
-				let youtube_link = new Array();
-				let keywords = result['keywords'];
-				for (i=0; i<= keywords.length-1; i++) {
-					// find the youtube link based on title and artist
-					ytsearch(keywords[i], ytsearch_options, function(err, results) {
-					  // return the link for the video based on keywords and concat to array
-					  // IMPORTANT THIS RESULTS ISNT REALTED TO OUR PROMISE CHAIN
-					  console.log(results);
-					  let scrapped_link = results[0]['link'];
-					  console.log(scrapped_link);
-					  youtube_link = youtube_link.concat(scrapped_link);
+			}).then(function(result) {
+				console.log(result);
+			});
+
+			// Because we want five sets of messages displayed
+			// wrap our promise chain in a for loop which iterates 5 times
+/*			for (i=0; i <= 4; i++) {
+				// BEGIN of promise chain
+				top5.then(function(chartData) {
+					let data = chartData['data'];
+					let display_rank = data[i]['rank'];
+					let display_title = data[i]['title'];
+					let display_artist = data[i]['artist'];
+					let keywords = display_title+' by '+display_artist;
+					return new Promise(function(resolve, reject){
+						ytsearch(keywords, ytsearch_options, function(err, search_results) {
+					  		if(err) return console.log(err);
+					  		// return the link for the video based on keyword
+					  		let scrapped_link = search_results[0]['link'];
+						  	let specific_display = {
+						  		rank: display_rank,
+								title: display_title,
+								artist: display_artist,
+								keyword: keywords,
+								link: scrapped_link
+						  	};
+						  	resolve(specific_display);
+						});
 					});
-				}
-				return new Promise(function(resolve, reject) {
-					// resolve the youtube links array after 2 s
-					setTimeout(function() {
-						console.log(youtube_link);
-						console.log(keywords);
-						let display_data = {
-							rank: result['rank'],
-							title: result['title'],
-							artist: result['artist'],
-							keywords: keywords,
-							link: youtube_link
-						};
-						resolve(display_data)
-					}, 5000)
-				});
-			}).then(function (result) {
-				// last promise in the chain - finally ready to disp data
-				let rank = result['rank'];
-				for (i=0; i<= rank.length-1; i++) {
+				}).then(function (result) {
+					// last promise in the chain - finally ready to disp data
 					// extract information from the result obj and display on disco
 					let kpop_embed = new discord.RichEmbed()
-						.addField('Rank', result['rank'][i], true)
-						.addField('Title', result['title'][i], true)
-						.addField('Artist', result['artist'][i], true);
+						.addField('Rank', result['rank'], true)
+						.addField('Title', result['title'], true)
+						.addField('Artist', result['artist'], true);
 					message.channel.send(kpop_embed);
-					message.channel.send(result['link'][i]);
-				}
-			});
+					message.channel.send(result['link']);
+				});
+				// END OF PROMISE CHAIN
+			};*/
+
 		} else {
 			message.channel.send('Invalid command');
 		}
