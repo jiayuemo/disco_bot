@@ -34,50 +34,7 @@ bot.on('message', function(message) {
 		if (args[0].toLowerCase() == 'chart') {
 
 			// get the date of today
-			let today = moment(new Date()).format('MM/DD/YYYY');
-
-			// Create functions
-			// https://stackoverflow.com/questions/41020872/javascript-promises-chain-same-promise-n-times-then-do-something-else
-/*			function createmsg(content) {
-				let query = new Promise(function(resolve,reject) {
-					let keywords = content[0]['keywords'];
-					ytsearch(keywords, ytsearch_options, function(err, search_results) {
-					  	if(err) return console.log(err);
-				  		// return the link for the video based on keyword
-				  		let scrapped_link = search_results[0]['link'];
-					  	let specific_display = {
-					  		rank: this.content[0]['rank']
-							title: this.content[0]['title'],
-							artist: this.content[0]['artist'],
-							keywords: keywords,
-							link: scrapped_link
-					  	};
-					  	resolve(specific_display);
-					});
-				}).then(function (result) {
-					// last promise in the chain - finally ready to disp data
-					// extract information from the result obj and display on disco
-					let kpop_embed = new discord.RichEmbed()
-						.addField('Rank', result['rank'], true)
-						.addField('Title', result['title'], true)
-						.addField('Artist', result['artist'], true);
-					message.channel.send(kpop_embed);
-					message.channel.send(result['link']);
-				});
-				// END OF PROMISE CHAIN;
-				return query;
-			};
-
-			function createmultiplemsg(current_iteration,target_iteration,all_content) {
-				if (current_iteration == target_iteration) {
-					return Promise.resolve(); // finally done with every iteration
-				}
-				return createmsg(specific_content).then(function() {
-					return createmultiplemsg(current_iteration+1, 5, content);
-				})
-			};*/
-
-			
+			let today = moment(new Date()).format('MM/DD/YYYY');			
 
 			// utilize melon-chart-api to recieve a jspromise of rankings
 			// https://github.com/hyunchel/melon-chart-api
@@ -99,6 +56,7 @@ bot.on('message', function(message) {
 					}
 				};
 			}).then(function(all_content) {
+				// https://stackoverflow.com/questions/41020872/javascript-promises-chain-same-promise-n-times-then-do-something-else
 				// iterator then, where we implement our functions
 				// createmultiplemsg is the function that manages our "loop"
 				function createmultiplemsg(current_iteration,target_iteration,all_content) {
@@ -141,51 +99,10 @@ bot.on('message', function(message) {
 					return query;
 				};
 				// end of functions implementation
-				console.log(all_content[0]);
 				createmultiplemsg(0,5,all_content).then(function(){
 					console.log('Finally done');
 				});
-
 			});
-
-
-			// Because we want five sets of messages displayed
-			// wrap our promise chain in a for loop which iterates 5 times
-/*			for (i=0; i <= 4; i++) {
-				console.log(i);
-				// BEGIN of promise chain
-				top5.then(function(chartData) {
-					let data = chartData['data'];
-					let keywords = data[i]['title']+' by '+data[i]['artist'];
-					return new Promise(function(resolve, reject){
-						ytsearch(keywords, ytsearch_options, function(err, search_results) {
-					  		if(err) return console.log(err);
-					  		// return the link for the video based on keyword
-					  		let scrapped_link = search_results[0]['link'];
-						  	let specific_display = {
-						  		rank: data[i]['rank'],
-								title: data[i]['title'],
-								artist: data[i]['artist'],
-								keyword: keywords,
-								link: scrapped_link
-						  	};
-						  	console.log(specific_display);
-						  	resolve(specific_display);
-						});
-					});
-				}.bind(this))*//*.then(function (result) {
-					// last promise in the chain - finally ready to disp data
-					// extract information from the result obj and display on disco
-					let kpop_embed = new discord.RichEmbed()
-						.addField('Rank', result['rank'], true)
-						.addField('Title', result['title'], true)
-						.addField('Artist', result['artist'], true);
-					message.channel.send(kpop_embed);
-					message.channel.send(result['link']);
-				});
-				// END OF PROMISE CHAIN
-			};*/
-
 		} else {
 			message.channel.send('Invalid command');
 		}
