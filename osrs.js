@@ -1,3 +1,4 @@
+'use strict';
 function solve_anagram (arg1, anagram) {
 	// the first arg is the anagram to solve
 	let input_anagram = arg1;

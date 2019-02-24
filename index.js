@@ -1,3 +1,4 @@
+'use strict';
 const discord = require('discord.js');
 const melon = require('melon-chart-api');
 const moment = require('moment');
@@ -5,17 +6,17 @@ const ytsearch = require('youtube-search');
 const bot = new discord.Client();
 const anagram = require('./anagrams/module_anagram');
 const cipher = require('./ciphers/module_cipher');
-const TOKEN = require('./config');
+const SECRETS = require('./config');
 
 const PREFIX1 = 'kpop ';
 const PREFIX2 = 'osrs ';
 const osrs = require('./osrs');
 
-const DISCORD_SECRET = TOKEN.TOKEN.DISCORD_TOKEN;
+const DISCORD_SECRET = SECRETS["tokens"]["DISCORD_TOKEN"];
 const ytsearch_options = {
 	maxResults: 1,
 	part: 'snippet',
-  	key: TOKEN.TOKEN.YOUTUBE_KEY
+  	key: SECRETS["tokens"]["YOUTUBE_KEY"]
 };
 
 // function to run on bot startup
@@ -42,7 +43,7 @@ bot.on('message', function(message) {
 			top5.then(function(chartData) {
 				let data = chartData['data'];
 				let all_content = new Array();
-				for (i=0; i<=data.length-1; i++) {
+				for (let i=0; i<=data.length-1; i++) {
 					all_content = all_content.concat({
 						rank: data[i]['rank'],
 						title: data[i]['title'],
