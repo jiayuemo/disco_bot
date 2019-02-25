@@ -15,8 +15,8 @@ const osrs = require('./osrs');
 const DISCORD_SECRET = SECRETS["tokens"]["DISCORD_TOKEN"];
 const ytsearch_options = {
 	maxResults: 1,
-	part: 'snippet',
-  	key: SECRETS["tokens"]["YOUTUBE_KEY"]
+	// part: 'snippet',
+  	key: SECRETS["tokens"]["YOUTUBE_KEY"],
 };
 
 // function to run on bot startup
@@ -74,7 +74,10 @@ bot.on('message', function(message) {
 					let query = new Promise(function(resolve,reject) {
 						let keywords = content['keywords'];
 						ytsearch(keywords, ytsearch_options, function(err, search_results) {
-						  	if(err) return console.log(err);
+						  	if(err) {
+						  		console.log(err.response);
+						  		return;
+						  	}
 					  		// return the link for the video based on keyword
 					  		let scrapped_link = search_results[0]['link'];
 						  	let specific_display = {
@@ -219,6 +222,15 @@ bot.on('message', function(message) {
 		} else {
 			message.channel.send('Invalid command, ironman btw');
 		}
+	}
+
+	if (message.mentions.users) {
+		let mentionedUsers = message.mentions.users;
+		mentionedUsers.forEach(function(user) {
+			if (user.username === "gfs_bot" && user.discriminator === "8603") {
+				message.channel.send("Mozambique is here!");
+			}
+		});
 	}
 
 });
